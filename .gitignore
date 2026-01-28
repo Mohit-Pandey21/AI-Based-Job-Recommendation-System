@@ -1,0 +1,20 @@
+# Data files
+*.csv
+data/
+
+# Model artifacts
+artifacts/
+*.npy
+*.pkl
+*.index
+
+# SBERT model weights
+sbert_model/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.env/
