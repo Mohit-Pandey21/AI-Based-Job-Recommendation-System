@@ -1,20 +1,44 @@
-# Data files
-*.csv
-data/
+# ----------------------------
+# Python cache
+# ----------------------------
+__pycache__/
+*.pyc
+*.pyo
 
+# ----------------------------
+# Data files
+# ----------------------------
+data/*
+!data/sample_jobs.csv
+!data/user_state.json
+
+# ----------------------------
 # Model artifacts
+# ----------------------------
 artifacts/
 *.npy
 *.pkl
 *.index
 
-# SBERT model weights
+# ----------------------------
+# SBERT model
+# ----------------------------
 sbert_model/
 
-# Python cache
-__pycache__/
-*.pyc
-
+# ----------------------------
 # Virtual environments
+# ----------------------------
 venv/
 .env/
+
+# ----------------------------
+# IDE / system files
+# ----------------------------
+.vscode/
+.idea/
+.DS_Store
+
+# ----------------------------
+# Logs / temp
+# ----------------------------
+*.log
