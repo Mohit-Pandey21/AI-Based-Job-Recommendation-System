@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Job Recommender</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00c2ff;
+      --primary-glow: rgba(0,194,255,0.18);
+      --primary-hover: #38d4ff;
+      --bg: #07080f;
+      --bg2: #0d0f1c;
+      --card-bg: rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.09);
+      --card-hover: rgba(255,255,255,0.07);
+      --text-main: #eef0f8;
+      --text-sub: #6b7494;
+      --border: rgba(255,255,255,0.08);
+      --shadow: rgba(0,0,0,0.5);
+      --danger: #ff4f6a;
+      --danger-hover: #e0334e;
+      --tag-bg: rgba(0,194,255,0.1);
+      --sidebar-w: 268px;
+    }
+
+    body.light-mode {
+      --primary: #0077cc;
+      --primary-glow: rgba(0,119,204,0.12);
+      --primary-hover: #005fa3;
+      --bg: #f0f2f9;
+      --bg2: #e4e8f5;
+      --card-bg: #ffffff;
+      --card-border: #dde1ee;
+      --card-hover: #f5f7ff;
+      --text-main: #121526;
+      --text-sub: #5a6284;
+      --border: #dde1ee;
+      --shadow: rgba(0,0,0,0.1);
+      --tag-bg: rgba(0,119,204,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      transition: background-color 0.35s, color 0.35s;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 800px 600px at 10% 10%, rgba(0,194,255,0.055) 0%, transparent 70%),
+        radial-gradient(ellipse 700px 500px at 90% 80%, rgba(120,80,255,0.05) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body.light-mode::before {
+      background:
+        radial-gradient(ellipse 800px 600px at 10% 10%, rgba(0,119,204,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 700px 500px at 90% 80%, rgba(100,60,220,0.04) 0%, transparent 70%);
+    }
+    body.light-mode::after {
+      background-image:
+        linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+    }
+
+    .theme-toggle-container {
+      position: fixed;
+      top: 16px;
+      right: 18px;
+      z-index: 999;
+    }
+
+    .theme-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 9px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+    }
+    .theme-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary), 0 4px 20px var(--primary-glow);
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 80px 20px 40px;
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      gap: 26px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sidebar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 22px 18px;
+      border-radius: 18px;
+      height: fit-content;
+      position: sticky;
+      top: 80px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+    }
+
+    .sidebar-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .profile-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+
+    .profile-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #22c55e;
+      font-weight: 600;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.25);
+      padding: 3px 9px;
+      border-radius: 999px;
+      margin-top: 3px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 16px 0;
+    }
+
+    .sidebar h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 10px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .history-item {
+      font-size: 13px;
+      color: var(--text-sub);
+      padding: 9px 10px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.18s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 3px;
+    }
+    .history-item::before {
+      content: '↺';
+      opacity: 0.5;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .history-item:hover {
+      color: var(--primary);
+      background: var(--primary-glow);
+    }
+
+    .btn-reset {
+      width: 100%;
+      padding: 10px;
+      margin-top: 14px;
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(255,79,106,0.3);
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .btn-reset:hover {
+      background: rgba(255,79,106,0.1);
+      border-color: var(--danger);
+    }
+
+    .recruiter-btn-wrap {
+      margin-top: 12px;
+      text-decoration: none;
+      display: block;
+    }
+    .recruiter-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .recruiter-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      min-width: 0;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, var(--text-main) 40%, var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+
+    .hero-sub {
+      color: var(--text-sub);
+      font-size: 14px;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"] {
+      flex: 1 1 260px;
+      min-width: 180px;
+      padding: 14px 18px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--text-main);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input[type="text"]::placeholder { color: var(--text-sub); }
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    button.search-btn {
+      flex: 0 0 auto;
+      padding: 13px 22px;
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    button.search-btn:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 0 28px rgba(0,194,255,0.3);
+      transform: translateY(-1px);
+    }
+    button.search-btn:active { transform: translateY(0); }
+
+    .loader {
+      text-align: center;
+      display: none;
+      padding: 18px;
+      color: var(--text-sub);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .loader-bar {
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .loader-bar-inner {
+      height: 100%;
+      width: 38%;
+      background: var(--primary);
+      border-radius: 2px;
+      animation: barslide 1.4s ease-in-out infinite;
+      box-shadow: 0 0 8px var(--primary);
+    }
+    @keyframes barslide {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(380%); }
+    }
+
+    .job-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .job-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 18px 20px;
+      border-radius: 16px;
+      transition: all 0.22s;
+      display: flex;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      animation: fadeUp 0.3s both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .job-card:hover {
+      background: var(--card-hover);
+      border-color: rgba(0,194,255,0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,194,255,0.08);
+    }
+
+    .job-info { min-width: 0; flex: 1; }
+    .job-info h3 {
+      margin: 0 0 6px 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      word-break: break-word;
+    }
+    .job-info p {
+      color: var(--text-sub);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--tag-bg);
+      border: 1px solid rgba(0,194,255,0.18);
+      color: var(--primary);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      margin-top: 10px;
+      font-weight: 600;
+      font-family: 'Syne', sans-serif;
+      letter-spacing: 0.04em;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-like {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text-sub);
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-like:hover {
+      background: rgba(255,79,106,0.1);
+      border-color: rgba(255,79,106,0.4);
+      color: #ff4f6a;
+      transform: scale(1.04);
+    }
+
+    @media (max-width: 980px) {
+      .container {
+        grid-template-columns: 1fr;
+        padding-top: 70px;
+      }
+      .sidebar {
+        position: relative;
+        top: auto;
+        order: 0;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .container { padding: 70px 14px 30px; gap: 18px; }
+      .theme-toggle-container { top: 10px; right: 12px; }
+      .theme-btn { padding: 8px 12px; font-size: 12px; }
+      .job-card { padding: 14px; }
+      .btn-like { width: 100%; text-align: center; }
+      button.search-btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="theme-toggle-container">
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 Dark Mode</button>
+  </div>
+
+  <div class="container">
+    <div class="sidebar">
+      <div class="sidebar-label">Your Profile</div>
+      <div class="profile-section">
+        <div class="avatar">👤</div>
+        <div>
+          <div class="profile-name">Candidate</div>
+          <div id="status-box">
+            <span class="status-pill"><span class="status-dot"></span> Active</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <h3>Recent Likes</h3>
+      <div id="history-list">
+        <div style="color: var(--text-sub); font-style: italic; font-size: 13px; padding: 6px 10px;">No history yet...</div>
+      </div>
+
+      <button class="btn-reset" onclick="resetProfile()">✕ Reset Profile</button>
+
+      <hr class="divider" style="margin-top: 16px;">
+      <a href="/admin" class="recruiter-btn-wrap">
+        <button class="recruiter-btn">👨‍💼 Recruiter Login</button>
+      </a>
+    </div>
+
+    <div class="main-content">
+      <div>
+        <div class="hero-eyebrow">AI-Powered Job Search</div>
+        <h1>🚀 JobNexus AI</h1>
+        <p class="hero-sub">Discover your next role with intelligent matching.</p>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search for a role (e.g. Data Scientist)..." />
+        <button class="search-btn" onclick="performSearch()">Search</button>
+      </div>
+
+      <div class="loader" id="loader">
+        Processing AI Models...
+        <div class="loader-bar"><div class="loader-bar-inner"></div></div>
+      </div>
+
+      <div class="job-list" id="jobResults"></div>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const body = document.body;
+      const btn = document.getElementById('themeBtn');
+      body.classList.toggle('light-mode');
+
+      if (body.classList.contains('light-mode')) {
+        btn.innerHTML = '🌑 Dark Mode';
+        localStorage.setItem('theme', 'light');
+      } else {
+        btn.innerHTML = '🌙 Dark Mode';
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    (function loadTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      const btn = document.getElementById('themeBtn');
+      if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        if (btn) btn.innerHTML = '🌑 Dark Mode';
+      }
+    })();
+
+    window.onload = function() {
+      if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light-mode');
+        document.getElementById('themeBtn').innerHTML = '🌑 Dark Mode';
+      }
+      performSearch();
+      updateHistoryUI();
+    };
+
+    async function performSearch() {
+      const query = document.getElementById('searchInput').value;
+      const list = document.getElementById('jobResults');
+      const loader = document.getElementById('loader');
+
+      list.innerHTML = '';
+      loader.style.display = 'block';
+
+      try {
+        const response = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query })
+        });
+
+        const jobs = await response.json();
+        loader.style.display = 'none';
+
+        if (!Array.isArray(jobs) || jobs.length === 0) {
+          list.innerHTML = '<p style="text-align:center; color: var(--text-sub); padding: 32px 0;">No jobs found.</p>';
+          return;
+        }
+
+        jobs.forEach((job, i) => {
+          const card = `
+            <div class="job-card" style="animation-delay: ${i * 0.06}s">
+              <div class="job-info">
+                <h3>${escapeHtml(job.title || '')}</h3>
+                <p>🏢 ${escapeHtml(job.company || '')} &nbsp;·&nbsp; 📍 ${escapeHtml(job.city || '')}</p>
+                <span class="tag">${escapeHtml(job.industry || 'Unknown')}</span>
+              </div>
+              <button class="btn-like" onclick="likeJob(${Number(job.id)}, '${(job.title || '').replace(/'/g, "\\'")}')">
+                ❤️ Like
+              </button>
+            </div>
+          `;
+          list.innerHTML += card;
+        });
+      } catch (error) {
+        console.error(error);
+        loader.style.display = 'none';
+        list.innerHTML = '<p style="text-align:center; color: var(--text-sub); padding: 32px 0;">Backend error. Try again.</p>';
+      }
+    }
+
+    async function likeJob(id, title) {
+      await fetch('/api/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, title: title })
+      });
+
+      updateHistoryUI();
+      document.getElementById('searchInput').value = '';
+      performSearch();
+    }
+
+    async function updateHistoryUI() {
+      const response = await fetch('/api/history');
+      const history = await response.json();
+      const container = document.getElementById('history-list');
+
+      if (!Array.isArray(history) || history.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-sub); font-size: 13px; padding: 6px 10px; font-style: italic;">No history yet...</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      history.slice(-5).reverse().forEach(item => {
+        container.innerHTML += `<div class="history-item" onclick="quickSearch('${String(item).replace(/'/g, "\\'")}')"> ${escapeHtml(item)}</div>`;
+      });
+    }
+
+    function quickSearch(term) {
+      document.getElementById('searchInput').value = term;
+      performSearch();
+    }
+
+    async function resetProfile() {
+      await fetch('/api/reset', { method: 'POST' });
+      document.getElementById('searchInput').value = '';
+      updateHistoryUI();
+      performSearch();
+    }
+
+    document.getElementById("searchInput").addEventListener("keypress", function(event) {
+      if (event.key === "Enter") performSearch();
+    });
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+
+</body>
+</html>
